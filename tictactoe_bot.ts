@@ -1,4 +1,24 @@
-export function botMove(board: string[][]): void {
+/**
+ * @file generatedBotScript.ts
+ *
+ * @author CuddlyBunion341 <00cb341@gmail.com>
+ *
+ * @description
+ * This file contains the bot's move logic for a Tic-Tac-Toe game, with all possible board
+ * states checked using nested `if` statements. The script evaluates every possible configuration
+ * of the 3x3 Tic-Tac-Toe board, where each position is checked for states (`X`, `O`, and ' ').
+ *
+ * It took quite a while to write, but the result is absolutely amazing. The code is incredibly
+ * clean and neatly organizes all possible board configurations in a highly readable manner. Each
+ * board state is meticulously handled, ensuring that the bot knows exactly what to do in any scenario.
+ *
+ * The benefit of writing the logic this way is that every possible combination is explicitly defined,
+ * making debugging and modification (e.g., adding new rules or actions) much more straightforward.
+ * Plus, it's impressively verbose, which ensures there's zero ambiguity about how the bot behaves
+ * at any given moment.
+ *
+ */
+ export function botMove(board: string[][]): void {
   if (board[0][0] === "X") {
     if (board[0][1] === "X") {
       if (board[0][2] === "X") {
