@@ -1,34 +1,15 @@
 import { writeFile } from "fs/promises";
 
 const outputFile = "tictactoe_bot.ts";
-const totalStates = Math.pow(3, 9); // 3^9 = 19,683 board states
 let currentState = 0;
 
 // Progress bar function
 function progressBar() {
-  const progress = Math.floor((currentState / totalStates) * 100);
+  const progress = Math.floor((currentState / 3 ** 9) * 100); // 3^9 states
   const barWidth = 50;
   const filled = Math.floor((progress / 100) * barWidth);
   const empty = barWidth - filled;
-
-  process.stdout.write(
-    `\rGenerating conditions: [${"#".repeat(filled)}${"-".repeat(empty)}] ${progress}%`
-  );
-}
-
-// Function to determine the winner of a board state
-function getWinner(board: string[]): string | null {
-  const lines = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-    [0, 4, 8], [2, 4, 6],            // Diagonals
-  ];
-  for (const [a, b, c] of lines) {
-    if (board[a] !== " " && board[a] === board[b] && board[b] === board[c]) {
-      return board[a];
-    }
-  }
-  return null;
+  process.stdout.write(`\rGenerating conditions: [${"#".repeat(filled)}${"-".repeat(empty)}] ${progress}%`);
 }
 
 // Minimax algorithm for optimal bot move
@@ -47,6 +28,21 @@ function minimax(board: string[], isMaximizing: boolean): number {
     }
   }
   return isMaximizing ? Math.max(...scores) : Math.min(...scores);
+}
+
+// Function to determine the winner of a board state
+function getWinner(board: string[]): string | null {
+  const lines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+    [0, 4, 8], [2, 4, 6],            // Diagonals
+  ];
+  for (const [a, b, c] of lines) {
+    if (board[a] !== " " && board[a] === board[b] && board[b] === board[c]) {
+      return board[a];
+    }
+  }
+  return null;
 }
 
 // Find the best move for the bot
@@ -75,14 +71,9 @@ async function generateNestedConditions(depth: number, path: string[], outputStr
     progressBar();
 
     const bestMove = findBestMove([...path]);
-    if (bestMove === -1) {
-      outputStream.push(`return; // No moves left (game over)`);
-      return;
-    }
-
     const bestMoveRow = Math.floor(bestMove / 3);
     const bestMoveCol = bestMove % 3;
-    outputStream.push(`board[${bestMoveRow}][${bestMoveCol}] = 'O'; return;`);
+    outputStream.push(`board[${bestMoveRow}][${bestMoveCol}] = 'O';`);
     return;
   }
 
@@ -95,7 +86,7 @@ async function generateNestedConditions(depth: number, path: string[], outputStr
     states.push(`}`);
   }
 
-  // Combine the conditions and write incrementally to output
+  // Ensure proper structure with no extra 'else' or misplaced blocks
   outputStream.push(states.join(" else "));
 }
 
@@ -103,11 +94,12 @@ async function generateNestedConditions(depth: number, path: string[], outputStr
 async function generateScript() {
   const header = `
 export function botMove(board: string[][]): void {
-    // Bot's move logic for all possible board states
+  // Bot's move logic for all possible board states
 `;
+
   const footer = `
-    // Fallback if no conditions match (shouldn't happen)
-    console.log('Unhandled board state');
+  // Fallback if no conditions match (shouldn't happen)
+  console.log('Unhandled board state');
 }
 `;
 
@@ -117,7 +109,7 @@ export function botMove(board: string[][]): void {
 
   // Add the generated conditions to the script body
   const script = `${header}${outputStream.join("\n")}\n${footer}`;
-  
+
   // Write the generated script to the output file
   await writeFile(outputFile, script);
 
@@ -126,4 +118,3 @@ export function botMove(board: string[][]): void {
 
 // Run the generator
 generateScript();
-
