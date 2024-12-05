@@ -67,43 +67,32 @@ function findBestMove(board: string[]): number {
   return bestMove;
 }
 
-// Recursive function to generate all board states
-function generateConditions(depth: number, path: string[]): string {
+// Recursive function to generate nested conditions
+function generateNestedConditions(depth: number, path: string[]): string {
   if (depth === 9) {
+    // Base case: Generate logic for a fully-defined board
     currentState++;
     progressBar();
 
-    const boardArray = [
-      path.slice(0, 3),
-      path.slice(3, 6),
-      path.slice(6, 9),
-    ];
-    const flatBoard = path.join("");
     const bestMove = findBestMove([...path]);
-
     if (bestMove === -1) {
-      // No valid move (game over)
-      return `
-    if (JSON.stringify(board) === ${JSON.stringify(boardArray)}) {
-        // Game over, no moves left
-        return;
-    }`;
+      return `return; // No moves left (game over)`;
     }
 
     const bestMoveRow = Math.floor(bestMove / 3);
     const bestMoveCol = bestMove % 3;
-
-    return `
-    if (JSON.stringify(board) === ${JSON.stringify(boardArray)}) {
-        // Bot chooses optimal move at [${bestMoveRow}, ${bestMoveCol}]
-        board[${bestMoveRow}][${bestMoveCol}] = 'O';
-        return;
-    }`;
+    return `board[${bestMoveRow}][${bestMoveCol}] = 'O'; return;`;
   }
 
-  return ["X", "O", " "]
-    .map((char) => generateConditions(depth + 1, [...path, char]))
-    .join("");
+  // Generate conditions for each of X, O, and " "
+  const states: string[] = ["X", "O", " "].map((char) => {
+    const condition = `board[${Math.floor(depth / 3)}][${depth % 3}] === '${char}'`;
+    const nested = generateNestedConditions(depth + 1, [...path, char]);
+    return `if (${condition}) { ${nested} }`;
+  });
+
+  // Ensure all conditions are wrapped in an else block
+  return states.join(" else ");
 }
 
 // Generate the TypeScript function
@@ -119,9 +108,12 @@ export function botMove(board: string[][]): void {
 `;
 
   console.log("Starting generation...");
-  const conditions = generateConditions(0, []);
+  const nestedConditions = generateNestedConditions(0, []);
 
-  const script = `${header}${conditions}${footer}`;
+  // Add the generated conditions to the script body
+  const script = `${header}${nestedConditions}${footer}`;
+  
+  // Write the generated script to the output file
   await writeFile(outputFile, script);
 
   console.log("\nGeneration complete. Script saved to tictactoe_bot.ts");
