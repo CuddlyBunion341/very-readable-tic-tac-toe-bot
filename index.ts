@@ -16,26 +16,91 @@ function progressBar() {
   );
 }
 
+// Function to determine the winner of a board state
+function getWinner(board: string[]): string | null {
+  const lines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+    [0, 4, 8], [2, 4, 6],            // Diagonals
+  ];
+  for (const [a, b, c] of lines) {
+    if (board[a] !== " " && board[a] === board[b] && board[b] === board[c]) {
+      return board[a];
+    }
+  }
+  return null;
+}
+
+// Minimax algorithm for optimal bot move
+function minimax(board: string[], isMaximizing: boolean): number {
+  const winner = getWinner(board);
+  if (winner === "O") return 10;
+  if (winner === "X") return -10;
+  if (!board.includes(" ")) return 0; // Draw
+
+  const scores: number[] = [];
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === " ") {
+      board[i] = isMaximizing ? "O" : "X";
+      scores.push(minimax(board, !isMaximizing));
+      board[i] = " ";
+    }
+  }
+  return isMaximizing ? Math.max(...scores) : Math.min(...scores);
+}
+
+// Find the best move for the bot
+function findBestMove(board: string[]): number {
+  let bestScore = -Infinity;
+  let bestMove = -1;
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === " ") {
+      board[i] = "O";
+      const score = minimax(board, false);
+      board[i] = " ";
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = i;
+      }
+    }
+  }
+  return bestMove;
+}
+
 // Recursive function to generate all board states
 function generateConditions(depth: number, path: string[]): string {
   if (depth === 9) {
-    // Base case: construct a full board state
     currentState++;
     progressBar();
 
-    const boardState = JSON.stringify([
+    const boardArray = [
       path.slice(0, 3),
       path.slice(3, 6),
       path.slice(6, 9),
-    ]);
+    ];
+    const flatBoard = path.join("");
+    const bestMove = findBestMove([...path]);
+
+    if (bestMove === -1) {
+      // No valid move (game over)
+      return `
+    if (JSON.stringify(board) === ${JSON.stringify(boardArray)}) {
+        // Game over, no moves left
+        return;
+    }`;
+    }
+
+    const bestMoveRow = Math.floor(bestMove / 3);
+    const bestMoveCol = bestMove % 3;
+
     return `
-    if (JSON.stringify(board) === ${boardState}) {
-        // Bot logic for this specific state
+    if (JSON.stringify(board) === ${JSON.stringify(boardArray)}) {
+        // Bot chooses optimal move at [${bestMoveRow}, ${bestMoveCol}]
+        board[${bestMoveRow}][${bestMoveCol}] = 'O';
         return;
     }`;
   }
 
-  // Generate states for each cell being 'X', 'O', or ' '
   return ["X", "O", " "]
     .map((char) => generateConditions(depth + 1, [...path, char]))
     .join("");
@@ -53,15 +118,12 @@ export function botMove(board: string[][]): void {
 }
 `;
 
-  // Generate all conditions
   console.log("Starting generation...");
   const conditions = generateConditions(0, []);
 
-  // Write to output file
   const script = `${header}${conditions}${footer}`;
   await writeFile(outputFile, script);
 
-  // Finish
   console.log("\nGeneration complete. Script saved to tictactoe_bot.ts");
 }
 
