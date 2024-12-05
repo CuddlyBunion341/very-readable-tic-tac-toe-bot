@@ -1,4 +1,8 @@
-# solver
+# tic-tac-toe-solver
+
+Why have a DRY tic tac toe solver when you can check every single one of the 19'683 board states with a if statement individually? 
+
+See the [generated script](./tictactoe_bot.ts).
 
 To install dependencies:
 
