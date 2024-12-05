@@ -68,7 +68,7 @@ function findBestMove(board: string[]): number {
 }
 
 // Recursive function to generate nested conditions
-function generateNestedConditions(depth: number, path: string[]): string {
+async function generateNestedConditions(depth: number, path: string[], outputStream: string[]): Promise<void> {
   if (depth === 9) {
     // Base case: Generate logic for a fully-defined board
     currentState++;
@@ -76,23 +76,27 @@ function generateNestedConditions(depth: number, path: string[]): string {
 
     const bestMove = findBestMove([...path]);
     if (bestMove === -1) {
-      return `return; // No moves left (game over)`;
+      outputStream.push(`return; // No moves left (game over)`);
+      return;
     }
 
     const bestMoveRow = Math.floor(bestMove / 3);
     const bestMoveCol = bestMove % 3;
-    return `board[${bestMoveRow}][${bestMoveCol}] = 'O'; return;`;
+    outputStream.push(`board[${bestMoveRow}][${bestMoveCol}] = 'O'; return;`);
+    return;
   }
 
   // Generate conditions for each of X, O, and " "
-  const states: string[] = ["X", "O", " "].map((char) => {
+  const states: string[] = [];
+  for (const char of ["X", "O", " "]) {
     const condition = `board[${Math.floor(depth / 3)}][${depth % 3}] === '${char}'`;
-    const nested = generateNestedConditions(depth + 1, [...path, char]);
-    return `if (${condition}) { ${nested} }`;
-  });
+    states.push(`if (${condition}) {`);
+    await generateNestedConditions(depth + 1, [...path, char], outputStream);
+    states.push(`}`);
+  }
 
-  // Ensure all conditions are wrapped in an else block
-  return states.join(" else ");
+  // Combine the conditions and write incrementally to output
+  outputStream.push(states.join(" else "));
 }
 
 // Generate the TypeScript function
@@ -108,10 +112,11 @@ export function botMove(board: string[][]): void {
 `;
 
   console.log("Starting generation...");
-  const nestedConditions = generateNestedConditions(0, []);
+  const outputStream: string[] = [];
+  await generateNestedConditions(0, [], outputStream);
 
   // Add the generated conditions to the script body
-  const script = `${header}${nestedConditions}${footer}`;
+  const script = `${header}${outputStream.join("\n")}\n${footer}`;
   
   // Write the generated script to the output file
   await writeFile(outputFile, script);
@@ -121,3 +126,4 @@ export function botMove(board: string[][]): void {
 
 // Run the generator
 generateScript();
+
